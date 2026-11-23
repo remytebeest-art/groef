@@ -63,15 +63,51 @@ const runSongSearch = debounce(async () => {
 }, 450);
 
 /* ---------- voorbeeldkast ---------- */
+// Vaste iTunes-album-id's (NL-winkel) voor een fictieve, goed gevulde kast
+const DEMO_KAST = [1065973699, 594061854, 268443092, 1441164426, 1565391787, 1440856219, 617154241, 316620284, 1880517855,
+  580708175, 1440788438, 1538081586, 1039796877, 6781023399, 635770200, 269572838, 1746833068, 1625213430, 1440783617, 1097861387,
+  1440713018, 310730204, 1440812661, 324127933, 747087657, 726157248, 300948043, 1492263092, 1015739190, 574050396, 1443155637,
+  1440653096, 81668043, 1443827338, 286035429, 151178566, 316351910];
+const DEMO_WENS = [1065973975, 1706428459, 724466069, 1675375084];
+const DEMO_NOTES = ['Gevonden op de platenbeurs in Utrecht.', '', 'Van mijn vader gekregen — zijn naam staat nog op de binnenhoes.', 'Tweedehands gekocht, hoes heeft een kleine vouw.', '',
+  'Record Store Day-aankoop.', 'Licht kraakje aan het begin van kant B.', '', 'Rommelmarkt op Koningsdag — voor een paar euro!', 'Verjaardagscadeau.', '', 'Draai ik bijna elke zondagochtend.'];
+const DEMO_WENS_NOTES = ['Liefst een vroege persing.', 'Niet meer dan € 25 voor betalen.', 'Gezien in de bak bij de platenzaak om de hoek.', ''];
+function demoDetails(al, i) {   // verzonnen gegevens zodat de kast er 'geleefd' uitziet
+  al.demo = true; al.addedAt = Date.now() - i * 19 * 86400000 - i * 5400000;
+  if (al.status === 'collection') {
+    al.my = {
+      rating: [5, 4, 5, 4, 3, 5, 4][i % 7],
+      condition: ['Near Mint (NM)', 'Very Good Plus (VG+)', 'Very Good (VG)', 'Mint (M)', 'Very Good Plus (VG+)'][i % 5],
+      pressing: ['Originele persing', 'Heruitgave, 180 gram', 'Nederlandse persing', '', 'Heruitgave, gekleurd vinyl', 'Duitse persing'][i % 6],
+      bought: new Date(al.addedAt).toISOString().slice(0, 10),
+      price: ['12,50', '24,99', '5,00', '32,00', '18,00', '8,00', '27,50', '15,00', '21,95'][i % 9],
+      notes: DEMO_NOTES[i % DEMO_NOTES.length],
+    };
+  } else { al.prio = [3, 2, 3, 1][i % 4]; (al.my ||= {}).notes = DEMO_WENS_NOTES[i % DEMO_WENS_NOTES.length]; }
+}
 async function loadDemo() {
-  // vaste iTunes-album-id's (NL-winkel): Dark Side, Rumours, Kind of Blue, Abbey Road, Brothers in Arms, Back to Black, RAM, Skunk, Breakfast in America
-  const ids = [1065973699, 594061854, 268443092, 1441164426, 1565391787, 1440856219, 617154241, 316620284, 1880517855];
-  toast('Voorbeeldkast wordt gevuld…'); let n = 0;
-  for (const id of ids) {
-    try { const a = await itunes.albumFull(id); if (a) { addAlbum(a, 'collection'); n++; render(); } } catch { }
-    await sleep(250);
-  }
-  toast(n ? `${n} platen in je voorbeeldkast gezet` : 'Voorbeeldkast laden is niet gelukt — probeer het zo nog eens');
+  if (ui.demoBusy) return; ui.demoBusy = true;
+  if (sheets.includes('settings')) closeSheet();
+  toast('Voorbeeldkast wordt gevuld — een ogenblik…', 4000); let n = 0;
+  const all = [...DEMO_KAST.map(id => [id, 'collection']), ...DEMO_WENS.map(id => [id, 'wishlist'])];
+  try {
+    for (let i = 0; i < all.length; i += 5) {
+      const chunk = all.slice(i, i + 5);
+      try {
+        const d = await jget(`https://itunes.apple.com/lookup?id=${chunk.map(c => c[0]).join(',')}&entity=song&country=NL&limit=200`);
+        chunk.forEach(([id, status], j) => {
+          const head = d.results.find(r => r.wrapperType === 'collection' && r.collectionId === id); if (!head) return;
+          const a = mapAlbum(head); a.tracks = tracksFrom(d.results.filter(r => r.collectionId === id), a.artist);
+          const r = addAlbum(a, status); if (!r.added) return;
+          demoDetails(r.album, i + j); n++;
+        });
+        save(); render();
+      } catch { }
+      await sleep(700);
+    }
+  } finally { ui.demoBusy = false; }
+  state.tips = null; save(); render();
+  toast(n ? `${n} voorbeeldplaten toegevoegd — veel bladerplezier!` : 'Voorbeeldkast laden is niet gelukt — probeer het zo nog eens');
 }
 
 /* ---------- luisteren (Shazam-functie) ---------- */
@@ -261,6 +297,12 @@ const actions = {
     try { if (navigator.share) await navigator.share({ title: 'Mijn LP-verlanglijst', text }); else { await navigator.clipboard.writeText(text); toast('Verlanglijst gekopieerd'); } } catch { }
   },
   demo: () => loadDemo(),
+  'demo-remove': () => {
+    const n = state.albums.filter(a => a.demo).length; if (!n) return;
+    if (!confirm(`${n} voorbeeldplaten verwijderen? Platen die je zelf hebt toegevoegd blijven staan.`)) return;
+    if (player.album?.demo) actions.stop();
+    state.albums = state.albums.filter(a => !a.demo); state.tips = null; save(); renderSettings(); render(); toast('Voorbeeldplaten verwijderd');
+  },
   export: () => {
     const blob = new Blob([JSON.stringify({ app: 'groef', version: 1, exportedAt: new Date().toISOString(), ...state }, null, 1)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `groef-platenkast-${new Date().toISOString().slice(0, 10)}.json`; a.click();

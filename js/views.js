@@ -451,6 +451,9 @@ function renderSettings() {
         <select data-setting="country">${[['NL', 'Nederland'], ['BE', 'België'], ['DE', 'Duitsland'], ['GB', 'Verenigd Koninkrijk'], ['US', 'Verenigde Staten']].map(([v, l]) => `<option value="${v}" ${s.country === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
       <h4 class="facts-h">Mijn gegevens</h4>
       <p class="fine">Je collectie staat alleen op dit toestel. Maak af en toe een reservekopie.</p>
+      ${state.albums.some(a => a.demo)
+      ? `<button class="btn" data-act="demo-remove">${icon('trash')}<span>Voorbeeldplaten verwijderen (${state.albums.filter(a => a.demo).length})</span></button>`
+      : `<button class="btn" data-act="demo">${icon('sparkles')}<span>Voorbeeldkast laden (41 platen)</span></button>`}
       <button class="btn" data-act="export">${icon('download')}<span>Reservekopie opslaan</span></button>
       <button class="btn" data-act="import">${icon('upload')}<span>Reservekopie terugzetten</span></button>
       <button class="btn danger" data-act="wipe">${icon('trash')}<span>Alles wissen</span></button>
