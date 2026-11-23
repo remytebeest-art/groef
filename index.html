@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d0b0a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Groef — jouw platenkast op zak. Beheer je LP-collectie, ontdek nummers en draai ze via Spotify.">
+<title>Groef — jouw platenkast</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&family=DM+Sans:opsz,wght@9..40,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app">
+  <main id="views">
+
+    <!-- KAST -->
+    <section class="view active" id="v-kast">
+      <header class="top">
+        <h1 class="logo" aria-label="Groef">Gr<span class="logo-o"></span>ef</h1>
+        <div class="top-actions">
+          <button class="iconbtn" data-act="open-settings" aria-label="Instellingen"><i data-ic="gear"></i></button>
+          <button class="pill accent" data-act="open-adder" data-status="collection"><i data-ic="plus"></i>Plaat</button>
+        </div>
+      </header>
+      <label class="searchbar"><i data-ic="search"></i>
+        <input id="kast-q" type="search" placeholder="Zoek op album, artiest of nummer…" autocomplete="off" data-input="kast-q">
+      </label>
+      <div id="kast-body"></div>
+    </section>
+
+    <!-- NUMMER -> ALBUM -->
+    <section class="view" id="v-nummer">
+      <header class="top">
+        <div><p class="eyebrow">Terugzoeken</p><h1 class="title">Op welke plaat<br>staat dat nummer?</h1></div>
+      </header>
+      <label class="searchbar"><i data-ic="music"></i>
+        <input id="nummer-q" type="search" placeholder="Typ een nummer, bv. ‘Wish You Were Here’" autocomplete="off" data-input="nummer-q">
+      </label>
+      <div id="nummer-body"></div>
+    </section>
+
+    <!-- VERLANGLIJST -->
+    <section class="view" id="v-wens">
+      <header class="top">
+        <div><p class="eyebrow">Nog te scoren</p><h1 class="title">Verlanglijst</h1></div>
+        <div class="top-actions">
+          <button class="iconbtn" data-act="share-wishlist" aria-label="Deel verlanglijst"><i data-ic="share"></i></button>
+          <button class="pill accent" data-act="open-adder" data-status="wishlist"><i data-ic="plus"></i>Wens</button>
+        </div>
+      </header>
+      <div id="wens-body"></div>
+    </section>
+
+    <!-- VOOR JOU -->
+    <section class="view" id="v-tips">
+      <header class="top">
+        <div><p class="eyebrow">Op basis van jouw smaak</p><h1 class="title">Voor jou</h1></div>
+      </header>
+      <div id="tips-body"></div>
+    </section>
+  </main>
+
+  <!-- MINI PLAYER -->
+  <div id="mini" hidden></div>
+
+  <!-- TAB BAR -->
+  <nav id="tabbar">
+    <button class="tab active" data-act="tab" data-tab="kast"><i data-ic="crate"></i><span>Kast</span></button>
+    <button class="tab" data-act="tab" data-tab="nummer"><i data-ic="music"></i><span>Nummer</span></button>
+    <button class="tab-fab" data-act="open-listen" aria-label="Luister mee"><span class="fab-ring"></span><i data-ic="wave"></i></button>
+    <button class="tab" data-act="tab" data-tab="wens"><i data-ic="heart"></i><span>Wensen</span></button>
+    <button class="tab" data-act="tab" data-tab="tips"><i data-ic="sparkles"></i><span>Voor jou</span></button>
+  </nav>
+</div>
+
+<!-- SHEETS -->
+<div class="sheet" id="detail"><div class="sheet-scroll" id="detail-body"></div></div>
+
+<div class="sheet" id="deck"><div class="sheet-scroll" id="deck-body"></div></div>
+
+<div class="sheet" id="adder">
+  <div class="sheet-scroll">
+    <header class="sheet-head">
+      <button class="iconbtn" data-act="close-sheet" aria-label="Sluiten"><i data-ic="down"></i></button>
+      <h2 id="adder-title">Plaat toevoegen</h2>
+      <span class="iconbtn ghost"></span>
+    </header>
+    <label class="searchbar"><i data-ic="search"></i>
+      <input id="adder-q" type="search" placeholder="Artiest en/of albumtitel…" autocomplete="off" data-input="adder-q">
+    </label>
+    <div class="adder-tools">
+      <button class="chip" data-act="scan-start" id="scan-btn"><i data-ic="barcode"></i>Scan barcode op de hoes</button>
+      <button class="chip" data-act="manual-toggle"><i data-ic="pencil"></i>Handmatig invoeren</button>
+    </div>
+    <div id="scanner" hidden>
+      <video id="scan-video" playsinline muted></video>
+      <div class="scan-line"></div>
+      <button class="pill" data-act="scan-stop">Stop met scannen</button>
+    </div>
+    <form id="manual" hidden data-form="manual">
+      <input name="artist" placeholder="Artiest" required>
+      <input name="title" placeholder="Albumtitel" required>
+      <input name="year" placeholder="Jaar" inputmode="numeric" pattern="[0-9]{4}">
+      <button class="btn primary" type="submit">Toevoegen</button>
+    </form>
+    <div id="adder-body"></div>
+  </div>
+</div>
+
+<div class="sheet" id="listen">
+  <div class="sheet-scroll listen-wrap">
+    <header class="sheet-head">
+      <button class="iconbtn" data-act="close-sheet" aria-label="Sluiten"><i data-ic="down"></i></button>
+      <h2>Luister mee</h2>
+      <span class="iconbtn ghost"></span>
+    </header>
+    <div class="listen-stage">
+      <canvas id="viz" width="640" height="640"></canvas>
+      <button class="listen-btn" data-act="listen-start" aria-label="Start met luisteren">
+        <span class="listen-disc"><span class="listen-label"><i data-ic="wave"></i></span></span>
+      </button>
+    </div>
+    <p id="listen-status" class="listen-status">Tik op de plaat en houd je telefoon bij de muziek</p>
+    <div id="listen-result"></div>
+  </div>
+</div>
+
+<div class="sheet" id="settings"><div class="sheet-scroll" id="settings-body"></div></div>
+
+<div id="toasts"></div>
+<audio id="audio" preload="none"></audio>
+<input type="file" id="import-file" accept="application/json,.json" hidden>
+<input type="file" id="cover-file" accept="image/*" capture="environment" hidden>
+
+<script src="js/core.js"></script>
+<script src="js/views.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
